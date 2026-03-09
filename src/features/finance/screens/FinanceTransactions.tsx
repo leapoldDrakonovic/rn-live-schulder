@@ -5,6 +5,9 @@ import { Transaction, TransactionCategory, TransactionType } from '../../../../s
 
 const EXPENSE_CATEGORIES: TransactionCategory[] = ['food', 'transport', 'housing', 'entertainment', 'healthcare', 'education', 'shopping', 'utilities', 'other_expense'];
 const INCOME_CATEGORIES: TransactionCategory[] = ['salary', 'investment', 'gift', 'other_income'];
+const RSD_TO_USD_RATE = 96;
+
+type Currency = 'USD' | 'RSD';
 
 export function FinanceTransactions() {
   const { transactions, accounts, addTransaction, removeTransaction, addAccount } = useStore();
@@ -121,16 +124,33 @@ function TransactionModal({ visible, onClose, defaultAccountId, onSave }: {
 }) {
   const [type, setType] = useState<TransactionType>('expense');
   const [amount, setAmount] = useState('');
+  const [currency, setCurrency] = useState<Currency>('USD');
   const [category, setCategory] = useState<TransactionCategory>('food');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
 
   const categories = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
 
+  const handleAmountChange = (text: string) => {
+    setAmount(text);
+  };
+
+  const getDisplayAmount = () => {
+    if (!amount) return '';
+    const numAmount = parseFloat(amount);
+    if (isNaN(numAmount)) return amount;
+    if (currency === 'RSD') {
+      return (numAmount / RSD_TO_USD_RATE).toFixed(2);
+    }
+    return amount;
+  };
+
   const handleSave = () => {
     if (!amount || !defaultAccountId) return;
+    const numAmount = parseFloat(amount);
+    const finalAmount = currency === 'RSD' ? numAmount / RSD_TO_USD_RATE : numAmount;
     onSave({
-      amount: parseFloat(amount),
+      amount: finalAmount,
       type,
       category,
       description,
@@ -140,6 +160,7 @@ function TransactionModal({ visible, onClose, defaultAccountId, onSave }: {
     setAmount('');
     setDescription('');
     setCategory(type === 'income' ? 'salary' : 'food');
+    setCurrency('USD');
   };
 
   return (
@@ -182,14 +203,33 @@ function TransactionModal({ visible, onClose, defaultAccountId, onSave }: {
           </View>
 
           <Text style={styles.inputLabel}>Amount</Text>
-          <TextInput
-            value={amount}
-            onChangeText={setAmount}
-            placeholder="0.00"
-            keyboardType="decimal-pad"
-            style={styles.input}
-            placeholderTextColor="#8E8E93"
-          />
+          <View style={styles.currencyRow}>
+            <View style={styles.currencyToggle}>
+              <TouchableOpacity 
+                style={[styles.currencyButton, currency === 'USD' && styles.currencyButtonActive]} 
+                onPress={() => setCurrency('USD')}
+              >
+                <Text style={[styles.currencyButtonText, currency === 'USD' && styles.currencyButtonTextActive]}>USD</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.currencyButton, currency === 'RSD' && styles.currencyButtonActive]} 
+                onPress={() => setCurrency('RSD')}
+              >
+                <Text style={[styles.currencyButtonText, currency === 'RSD' && styles.currencyButtonTextActive]}>RSD</Text>
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              value={amount}
+              onChangeText={handleAmountChange}
+              placeholder={currency === 'USD' ? "0.00" : "0"}
+              keyboardType="decimal-pad"
+              style={[styles.input, styles.amountInput]}
+              placeholderTextColor="#8E8E93"
+            />
+          </View>
+          {currency === 'RSD' && amount && (
+            <Text style={styles.convertedText}>≈ ${getDisplayAmount()} USD</Text>
+          )}
 
           <Text style={styles.inputLabel}>Category</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.selector}>
@@ -414,6 +454,43 @@ const styles = StyleSheet.create({
     color: '#8E8E93',
     marginBottom: 8,
     marginTop: 12,
+  },
+  currencyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  currencyToggle: {
+    flexDirection: 'row',
+    backgroundColor: '#F2F2F7',
+    borderRadius: 8,
+    padding: 2,
+    marginRight: 8,
+  },
+  currencyButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  currencyButtonActive: {
+    backgroundColor: '#007AFF',
+  },
+  currencyButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#8E8E93',
+  },
+  currencyButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  amountInput: {
+    flex: 1,
+  },
+  convertedText: {
+    fontSize: 13,
+    color: '#34C759',
+    marginTop: -4,
+    marginBottom: 8,
   },
   input: {
     backgroundColor: '#F2F2F7',
