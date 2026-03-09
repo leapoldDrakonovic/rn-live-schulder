@@ -2,7 +2,7 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View, Text } from 'react-native';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -14,7 +14,7 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const { initialize, isLoading } = useStore();
+  const { initialize, isLoading, initError } = useStore();
   
   useEffect(() => {
     initialize();
@@ -24,6 +24,15 @@ export default function RootLayout() {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#007AFF" />
+      </View>
+    );
+  }
+
+  if (initError) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorTitle}>Initialization Error</Text>
+        <Text style={styles.errorMessage}>{initError}</Text>
       </View>
     );
   }
@@ -65,5 +74,23 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#F2F2F7',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F2F2F7',
+    padding: 20,
+  },
+  errorTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FF3B30',
+    marginBottom: 10,
+  },
+  errorMessage: {
+    fontSize: 14,
+    color: '#333',
+    textAlign: 'center',
   },
 });

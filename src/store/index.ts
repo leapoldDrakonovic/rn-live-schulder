@@ -17,6 +17,7 @@ interface AppState {
   focusSessions: FocusSession[];
   settings: UserSettings;
   isLoading: boolean;
+  initError: string | null;
   currentFilter: TaskFilter;
   searchQuery: string;
   
@@ -94,6 +95,7 @@ export const useStore = create<AppState>((set, get) => ({
   focusSessions: [],
   settings: defaultSettings,
   isLoading: true,
+  initError: null,
   currentFilter: 'today',
   searchQuery: '',
   
@@ -118,7 +120,8 @@ export const useStore = create<AppState>((set, get) => ({
       set({ tasks, projects, tags, events, timeBlocks, habits, goals, notes, focusSessions, settings, isLoading: false });
     } catch (error) {
       console.error('Failed to initialize database:', error);
-      set({ isLoading: false });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      set({ isLoading: false, initError: errorMessage });
     }
   },
   
