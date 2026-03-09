@@ -1,133 +1,91 @@
-# Scheluder - AI-Powered Productivity App
+# Scheluder - Personal Productivity App
 
-<p align="center">
-  <strong>Fully AI-Powered Application</strong>
-</p>
-
-Scheluder is a modern, AI-driven productivity application built with React Native and Expo. It helps you manage tasks, goals, habits, and more with intelligent automation and smart suggestions.
+A personal productivity application for iOS and Android built with React Native and Expo. Manage tasks, habits, goals, and track your finances all in one place.
 
 ## Features
 
-### AI-Powered Task Management
-- Smart task creation with natural language input
-- Intelligent priority suggestions
-- Automated scheduling based on your patterns
+### Tasks
+- Create and manage tasks with priorities (low, medium, high, critical)
+- Set due dates and reminders
+- Organize with subtasks
+- Filter by today, tomorrow, week, overdue, or no date
 
-### Smart Goals
-- AI-generated goal recommendations
-- Progress tracking with predictive analytics
-- Quarterly, monthly, and long-term goal planning
+### Calendar
+- Schedule events with start/end times
+- Categorize events (work, personal, health, social)
+- Time blocking for focused work sessions
 
-### Intelligent Habits
-- Habit tracking with AI insights
-- Personalized reminders based on your behavior
-- Difficulty and frequency optimization
+### Habits
+- Track daily and weekly habits
+- Keep track of streaks
+- Set difficulty levels (easy, medium, hard)
 
-### Calendar Integration
-- Smart event scheduling
-- AI-powered time blocking
-- Automatic task-to-calendar conversion
+### Goals
+- Set yearly, quarterly, monthly, or long-term goals
+- Break goals into milestones
+- Track progress percentage
+
+### Notes
+- Quick notes linked to tasks and goals
+- Tag-based organization
+
+### Finance
+- Track income and expenses
+- Organize by categories
+- View analytics and spending patterns
+- Monthly budget tracking
 
 ### Focus Mode
-- AI-optimized focus sessions
-- Smart break suggestions
-- Productivity pattern analysis
-
-### Analytics & Insights
-- AI-generated productivity reports
-- Performance predictions
-- Personalized recommendations
+- Pomodoro-style focus sessions
+- Track time spent on tasks
 
 ## Tech Stack
 
-- **Framework**: React Native with Expo
-- **Language**: TypeScript
-- **State Management**: Zustand
-- **Navigation**: React Navigation (Expo Router)
-- **Database**: Expo SQLite
-- **UI Components**: Custom components with react-native-safe-area-context
-- **Animations**: React Native Reanimated
-- **Icons**: @expo/vector-icons
+- React Native with Expo
+- TypeScript
+- Zustand for state management
+- Expo Router for navigation
+- Expo SQLite for local database
+- React Native Reanimated for animations
 
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- npm or yarn
-- Expo CLI
-- For iOS: Xcode (macOS only)
-- For Android: Android Studio
-
-### Installation
+## Installation
 
 ```bash
-# Clone the repository
-git clone <repository-url>
-cd scheluder
-
 # Install dependencies
 npm install
 
-# Start the development server
-npm start
+# Start development server
+npx expo start
 
 # Run on iOS
-npm run ios
+npx expo run:ios
 
 # Run on Android
-npm run android
+npx expo run:android
 ```
 
 ## Project Structure
 
 ```
-scheluder/
-├── app/                    # Expo Router app directory
-│   ├── (tabs)/            # Tab navigation screens
-│   ├── _layout.tsx        # Root layout
-│   ├── index.tsx          # Home screen
-│   ├── modal.tsx          # Modal screen
-│   └── ...                # Additional screens
-├── src/
-│   ├── features/         # Feature modules
-│   │   ├── tasks/        # Task management
-│   │   ├── goals/        # Goal tracking
-│   │   ├── habits/       # Habit tracking
-│   │   ├── calendar/     # Calendar & events
-│   │   ├── notes/        # Notes
-│   │   ├── analytics/    # Analytics & insights
-│   │   ├── notifications/# Focus mode
-│   │   └── settings/     # App settings
-│   ├── components/       # Reusable UI components
-│   ├── store/            # Zustand state management
-│   ├── services/         # External services
-│   ├── hooks/            # Custom React hooks
-│   ├── types/            # TypeScript types
-│   ├── utils/            # Utility functions
-│   └── constants/        # App constants
-├── hooks/                # Global hooks
-├── constants/            # Theme & constants
-└── package.json
+src/
+├── features/          # Feature modules
+│   ├── tasks/       # Task management
+│   ├── habits/      # Habit tracking
+│   ├── goals/       # Goal tracking
+│   ├── calendar/    # Calendar & events
+│   ├── notes/       # Notes
+│   ├── finance/     # Finance module
+│   └── ...
+├── store/            # Zustand state management
+├── database/        # SQLite database operations
+├── types/           # TypeScript interfaces
+└── ...
 ```
 
-## AI Capabilities
+## Database
 
-This application is fully AI-powered, featuring:
-
-- **Natural Language Processing**: Create tasks and goals using natural language
-- **Smart Predictions**: AI predicts optimal times for tasks and meetings
-- **Behavioral Analysis**: Learns your patterns to provide personalized insights
-- **Automated Optimization**: AI continuously optimizes your schedule and priorities
-- **Intelligent Reminders**: Context-aware notifications based on your habits
-- **Productivity Insights**: Deep analytics powered by machine learning
+The app uses SQLite for local data persistence. All data is stored on-device.
 
 ## License
 
-MIT License
-
----
-
-<p align="center">
-  Built with AI. Powered by Scheluder.
-</p>
+MIT
