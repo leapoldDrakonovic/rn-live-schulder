@@ -156,3 +156,52 @@ export interface DayStats {
   focusTime: number;
   habitsCompleted: number;
 }
+
+// Finance Types
+export type AccountType = 'cash' | 'bank_card' | 'savings' | 'credit' | 'investment' | 'other';
+export type TransactionType = 'income' | 'expense';
+export type TransactionCategory = 
+  | 'food' | 'transport' | 'housing' | 'entertainment' | 'healthcare' 
+  | 'education' | 'shopping' | 'utilities' | 'salary' | 'investment' 
+  | 'gift' | 'other' | 'other_expense' | 'other_income';
+
+export interface Account {
+  id: string;
+  name: string;
+  type: AccountType;
+  balance: number;
+  color: string;
+  icon?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Transaction {
+  id: string;
+  amount: number;
+  type: TransactionType;
+  category: TransactionCategory;
+  description: string;
+  accountId: string;
+  date: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  type: TransactionType;
+  color: string;
+  icon: string;
+  isCustom: boolean;
+}
+
+export interface Budget {
+  id: string;
+  category: TransactionCategory;
+  amount: number;
+  month: string;
+  spent: number;
+  createdAt: string;
+}

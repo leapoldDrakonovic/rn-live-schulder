@@ -1,5 +1,5 @@
 import * as SQLite from 'expo-sqlite';
-import { Task, Project, Tag, CalendarEvent, TimeBlock, Habit, Goal, Note, FocusSession, UserSettings } from '../types';
+import { Task, Project, Tag, CalendarEvent, TimeBlock, Habit, Goal, Note, FocusSession, UserSettings, Account, Transaction, Category, Budget, TransactionCategory } from '../types';
 
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
@@ -157,6 +157,79 @@ export const initDatabase = async (): Promise<void> => {
     `);
 
     await db.execAsync('INSERT OR IGNORE INTO settings (id) VALUES (1)');
+
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS accounts (
+        id TEXT PRIMARY KEY NOT NULL,
+        name TEXT NOT NULL,
+        type TEXT DEFAULT 'cash',
+        balance REAL DEFAULT 0,
+        color TEXT DEFAULT '#007AFF',
+        icon TEXT DEFAULT 'wallet',
+        createdAt TEXT NOT NULL,
+        updatedAt TEXT NOT NULL
+      )
+    `);
+
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS categories (
+        id TEXT PRIMARY KEY NOT NULL,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL,
+        color TEXT DEFAULT '#007AFF',
+        icon TEXT DEFAULT 'tag',
+        isCustom INTEGER DEFAULT 0
+      )
+    `);
+
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS transactions (
+        id TEXT PRIMARY KEY NOT NULL,
+        amount REAL NOT NULL,
+        type TEXT NOT NULL,
+        category TEXT NOT NULL,
+        description TEXT DEFAULT '',
+        accountId TEXT NOT NULL,
+        date TEXT NOT NULL,
+        createdAt TEXT NOT NULL,
+        updatedAt TEXT NOT NULL,
+        FOREIGN KEY (accountId) REFERENCES accounts(id)
+      )
+    `);
+
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS budgets (
+        id TEXT PRIMARY KEY NOT NULL,
+        category TEXT NOT NULL,
+        amount REAL NOT NULL,
+        month TEXT NOT NULL,
+        spent REAL DEFAULT 0,
+        createdAt TEXT NOT NULL
+      )
+    `);
+
+    await db.execAsync(`
+      INSERT OR IGNORE INTO categories (id, name, type, color, icon, isCustom) VALUES
+      ('food', 'Food & Dining', 'expense', '#FF9500', 'restaurant', 0),
+      ('transport', 'Transportation', 'expense', '#5856D6', 'car', 0),
+      ('housing', 'Housing', 'expense', '#34C759', 'home', 0),
+      ('entertainment', 'Entertainment', 'expense', '#FF2D55', 'film', 0),
+      ('healthcare', 'Healthcare', 'expense', '#FF3B30', 'heart', 0),
+      ('education', 'Education', 'expense', '#007AFF', 'book', 0),
+      ('shopping', 'Shopping', 'expense', '#AF52DE', 'bag', 0),
+      ('utilities', 'Utilities', 'expense', '#00C7BE', 'flash', 0),
+      ('salary', 'Salary', 'income', '#34C759', 'briefcase', 0),
+      ('investment', 'Investment', 'income', '#007AFF', 'chart', 0),
+      ('gift', 'Gift', 'income', '#FF2D55', 'gift', 0),
+      ('other_expense', 'Other', 'expense', '#8E8E93', 'ellipsis', 0),
+      ('other_income', 'Other', 'income', '#8E8E93', 'ellipsis', 0)
+    `);
+
+    await db.execAsync(`
+      INSERT OR IGNORE INTO accounts (id, name, type, balance, color, icon, createdAt, updatedAt) VALUES
+      ('default', 'Cash', 'cash', 0, '#007AFF', 'wallet', datetime('now'), datetime('now'))
+    `);
+
     console.log('Database initialized successfully');
   } catch (error) {
     console.error('Failed to initialize database:', error);
@@ -793,6 +866,330 @@ export const updateSettings = async (settings: Partial<UserSettings>): Promise<v
     }
   } catch (error) {
     console.error('Error updating settings:', error);
+    throw error;
+  }
+};
+
+// Finance Database Functions
+
+export const getAccounts = async (): Promise<Account[]> => {
+  try {
+    const database = await getDatabase();
+    return await database.getAllAsync<Account>('SELECT * FROM accounts ORDER BY name ASC');
+  } catch (error) {
+    console.error('Error getting accounts:', error);
+    return [];
+  }
+};
+
+export const createAccount = async (account: Account): Promise<void> => {
+  try {
+    const database = await getDatabase();
+    await database.runAsync(
+      'INSERT INTO accounts (id, name, type, balance, color, icon, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [account.id, account.name, account.type, account.balance, account.color, account.icon, account.createdAt, account.updatedAt]
+    );
+  } catch (error) {
+    console.error('Error creating account:', error);
+    throw error;
+  }
+};
+
+export const updateAccount = async (account: Account): Promise<void> => {
+  try {
+    const database = await getDatabase();
+    await database.runAsync(
+      'UPDATE accounts SET name = ?, type = ?, balance = ?, color = ?, icon = ?, updatedAt = ? WHERE id = ?',
+      [account.name, account.type, account.balance, account.color, account.icon, account.updatedAt, account.id]
+    );
+  } catch (error) {
+    console.error('Error updating account:', error);
+    throw error;
+  }
+};
+
+export const deleteAccount = async (id: string): Promise<void> => {
+  try {
+    const database = await getDatabase();
+    await database.runAsync('DELETE FROM accounts WHERE id = ?', [id]);
+  } catch (error) {
+    console.error('Error deleting account:', error);
+    throw error;
+  }
+};
+
+export const getCategories = async (): Promise<Category[]> => {
+  try {
+    const database = await getDatabase();
+    const result = await database.getAllAsync<any>('SELECT * FROM categories ORDER BY name ASC');
+    return result.map(row => ({
+      ...row,
+      isCustom: Boolean(row.isCustom),
+    }));
+  } catch (error) {
+    console.error('Error getting categories:', error);
+    return [];
+  }
+};
+
+export const createCategory = async (category: Category): Promise<void> => {
+  try {
+    const database = await getDatabase();
+    await database.runAsync(
+      'INSERT INTO categories (id, name, type, color, icon, isCustom) VALUES (?, ?, ?, ?, ?, ?)',
+      [category.id, category.name, category.type, category.color, category.icon, category.isCustom ? 1 : 0]
+    );
+  } catch (error) {
+    console.error('Error creating category:', error);
+    throw error;
+  }
+};
+
+export const deleteCategory = async (id: string): Promise<void> => {
+  try {
+    const database = await getDatabase();
+    await database.runAsync('DELETE FROM categories WHERE id = ?', [id]);
+  } catch (error) {
+    console.error('Error deleting category:', error);
+    throw error;
+  }
+};
+
+export const getTransactions = async (filters?: {
+  accountId?: string;
+  category?: TransactionCategory;
+  type?: 'income' | 'expense';
+  startDate?: string;
+  endDate?: string;
+}): Promise<Transaction[]> => {
+  try {
+    const database = await getDatabase();
+    let query = 'SELECT * FROM transactions WHERE 1=1';
+    const params: any[] = [];
+
+    if (filters?.accountId) {
+      query += ' AND accountId = ?';
+      params.push(filters.accountId);
+    }
+    if (filters?.category) {
+      query += ' AND category = ?';
+      params.push(filters.category);
+    }
+    if (filters?.type) {
+      query += ' AND type = ?';
+      params.push(filters.type);
+    }
+    if (filters?.startDate) {
+      query += ' AND date >= ?';
+      params.push(filters.startDate);
+    }
+    if (filters?.endDate) {
+      query += ' AND date <= ?';
+      params.push(filters.endDate);
+    }
+
+    query += ' ORDER BY date DESC, createdAt DESC';
+
+    const result = await database.getAllAsync<Transaction>(query, params);
+    return result;
+  } catch (error) {
+    console.error('Error getting transactions:', error);
+    return [];
+  }
+};
+
+export const createTransaction = async (transaction: Transaction): Promise<void> => {
+  try {
+    const database = await getDatabase();
+    
+    await database.runAsync(
+      'INSERT INTO transactions (id, amount, type, category, description, accountId, date, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [transaction.id, transaction.amount, transaction.type, transaction.category, transaction.description, transaction.accountId, transaction.date, transaction.createdAt, transaction.updatedAt]
+    );
+
+    const account = await database.getFirstAsync<Account>('SELECT * FROM accounts WHERE id = ?', [transaction.accountId]);
+    if (account) {
+      const newBalance = transaction.type === 'income' 
+        ? account.balance + transaction.amount 
+        : account.balance - transaction.amount;
+      await database.runAsync('UPDATE accounts SET balance = ?, updatedAt = ? WHERE id = ?', [newBalance, transaction.updatedAt, transaction.accountId]);
+    }
+  } catch (error) {
+    console.error('Error creating transaction:', error);
+    throw error;
+  }
+};
+
+export const updateTransaction = async (transaction: Transaction): Promise<void> => {
+  try {
+    const database = await getDatabase();
+    
+    const oldTransaction = await database.getFirstAsync<Transaction>('SELECT * FROM transactions WHERE id = ?', [transaction.id]);
+    if (oldTransaction) {
+      const account = await database.getFirstAsync<Account>('SELECT * FROM accounts WHERE id = ?', [oldTransaction.accountId]);
+      if (account) {
+        let balanceDiff = 0;
+        if (oldTransaction.type === 'income') {
+          balanceDiff -= oldTransaction.amount;
+        } else {
+          balanceDiff += oldTransaction.amount;
+        }
+        if (transaction.type === 'income') {
+          balanceDiff += transaction.amount;
+        } else {
+          balanceDiff -= transaction.amount;
+        }
+        await database.runAsync('UPDATE accounts SET balance = balance + ?, updatedAt = ? WHERE id = ?', [balanceDiff, transaction.updatedAt, oldTransaction.accountId]);
+      }
+    }
+
+    await database.runAsync(
+      'UPDATE transactions SET amount = ?, type = ?, category = ?, description = ?, accountId = ?, date = ?, updatedAt = ? WHERE id = ?',
+      [transaction.amount, transaction.type, transaction.category, transaction.description, transaction.accountId, transaction.date, transaction.updatedAt, transaction.id]
+    );
+  } catch (error) {
+    console.error('Error updating transaction:', error);
+    throw error;
+  }
+};
+
+export const deleteTransaction = async (id: string): Promise<void> => {
+  try {
+    const database = await getDatabase();
+    
+    const transaction = await database.getFirstAsync<Transaction>('SELECT * FROM transactions WHERE id = ?', [id]);
+    if (transaction) {
+      const account = await database.getFirstAsync<Account>('SELECT * FROM accounts WHERE id = ?', [transaction.accountId]);
+      if (account) {
+        const balanceDiff = transaction.type === 'income' ? -transaction.amount : transaction.amount;
+        await database.runAsync('UPDATE accounts SET balance = balance + ?, updatedAt = ? WHERE id = ?', [balanceDiff, new Date().toISOString(), transaction.accountId]);
+      }
+    }
+
+    await database.runAsync('DELETE FROM transactions WHERE id = ?', [id]);
+  } catch (error) {
+    console.error('Error deleting transaction:', error);
+    throw error;
+  }
+};
+
+export const getBudgets = async (month?: string): Promise<Budget[]> => {
+  try {
+    const database = await getDatabase();
+    if (month) {
+      return await database.getAllAsync<Budget>('SELECT * FROM budgets WHERE month = ? ORDER BY category ASC', [month]);
+    }
+    return await database.getAllAsync<Budget>('SELECT * FROM budgets ORDER BY month DESC, category ASC');
+  } catch (error) {
+    console.error('Error getting budgets:', error);
+    return [];
+  }
+};
+
+export const createBudget = async (budget: Budget): Promise<void> => {
+  try {
+    const database = await getDatabase();
+    await database.runAsync(
+      'INSERT INTO budgets (id, category, amount, month, spent, createdAt) VALUES (?, ?, ?, ?, ?, ?)',
+      [budget.id, budget.category, budget.amount, budget.month, budget.spent, budget.createdAt]
+    );
+  } catch (error) {
+    console.error('Error creating budget:', error);
+    throw error;
+  }
+};
+
+export const updateBudget = async (budget: Budget): Promise<void> => {
+  try {
+    const database = await getDatabase();
+    await database.runAsync(
+      'UPDATE budgets SET category = ?, amount = ?, month = ?, spent = ? WHERE id = ?',
+      [budget.category, budget.amount, budget.month, budget.spent, budget.id]
+    );
+  } catch (error) {
+    console.error('Error updating budget:', error);
+    throw error;
+  }
+};
+
+export const deleteBudget = async (id: string): Promise<void> => {
+  try {
+    const database = await getDatabase();
+    await database.runAsync('DELETE FROM budgets WHERE id = ?', [id]);
+  } catch (error) {
+    console.error('Error deleting budget:', error);
+    throw error;
+  }
+};
+
+export const getFinanceSummary = async (startDate?: string, endDate?: string) => {
+  try {
+    const database = await getDatabase();
+    
+    let whereClause = '';
+    const params: string[] = [];
+    if (startDate && endDate) {
+      whereClause = 'WHERE date >= ? AND date <= ?';
+      params.push(startDate, endDate);
+    }
+
+    const incomeResult = await database.getFirstAsync<{ total: number }>(
+      `SELECT COALESCE(SUM(amount), 0) as total FROM transactions ${whereClause ? whereClause + ' AND type = ?' : 'WHERE type = ?' }`,
+      [...params, 'income']
+    );
+    
+    const expenseResult = await database.getFirstAsync<{ total: number }>(
+      `SELECT COALESCE(SUM(amount), 0) as total FROM transactions ${whereClause ? whereClause + ' AND type = ?' : 'WHERE type = ?' }`,
+      [...params, 'expense']
+    );
+
+    const totalBalance = await database.getFirstAsync<{ total: number }>(
+      'SELECT COALESCE(SUM(balance), 0) as total FROM accounts'
+    );
+
+    const expensesByCategory = await database.getAllAsync<{ category: string; total: number }>(
+      `SELECT category, COALESCE(SUM(amount), 0) as total FROM transactions ${whereClause ? whereClause + ' AND type = ?' : 'WHERE type = ?' } GROUP BY category`,
+      [...params, 'expense']
+    );
+
+    return {
+      totalIncome: incomeResult?.total || 0,
+      totalExpenses: expenseResult?.total || 0,
+      totalBalance: totalBalance?.total || 0,
+      expensesByCategory,
+    };
+  } catch (error) {
+    console.error('Error getting finance summary:', error);
+    return {
+      totalIncome: 0,
+      totalExpenses: 0,
+      totalBalance: 0,
+      expensesByCategory: [],
+    };
+  }
+};
+
+export const clearAllData = async (): Promise<void> => {
+  try {
+    const database = await getDatabase();
+    await database.execAsync('DELETE FROM tasks');
+    await database.execAsync('DELETE FROM projects');
+    await database.execAsync('DELETE FROM tags');
+    await database.execAsync('DELETE FROM events');
+    await database.execAsync('DELETE FROM time_blocks');
+    await database.execAsync('DELETE FROM habits');
+    await database.execAsync('DELETE FROM goals');
+    await database.execAsync('DELETE FROM notes');
+    await database.execAsync('DELETE FROM focus_sessions');
+    await database.execAsync('DELETE FROM transactions');
+    await database.execAsync('DELETE FROM budgets');
+    await database.execAsync('DELETE FROM accounts');
+    await database.execAsync(`
+      INSERT OR IGNORE INTO accounts (id, name, type, balance, color, icon, createdAt, updatedAt) VALUES
+      ('default', 'Cash', 'cash', 0, '#007AFF', 'wallet', datetime('now'), datetime('now'))
+    `);
+  } catch (error) {
+    console.error('Error clearing all data:', error);
     throw error;
   }
 };

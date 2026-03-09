@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
 import dayjs from 'dayjs';
 import * as db from '../database';
-import { Task, Project, Tag, CalendarEvent, TimeBlock, Habit, Goal, Note, FocusSession, UserSettings, TaskFilter } from '../types';
+import { Task, Project, Tag, CalendarEvent, TimeBlock, Habit, Goal, Note, FocusSession, UserSettings, TaskFilter, Account, Transaction, Category, Budget } from '../types';
 
 interface AppState {
   tasks: Task[];
@@ -69,6 +69,32 @@ interface AppState {
   getFilteredTasks: () => Task[];
   getTodayTasks: () => Task[];
   getOverdueTasks: () => Task[];
+
+  // Finance
+  accounts: Account[];
+  transactions: Transaction[];
+  categories: Category[];
+  budgets: Budget[];
+  financeSummary: {
+    totalIncome: number;
+    totalExpenses: number;
+    totalBalance: number;
+    expensesByCategory: { category: string; total: number }[];
+  };
+  
+  loadFinanceData: () => Promise<void>;
+  addAccount: (account: Omit<Account, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateAccount: (account: Account) => Promise<void>;
+  removeAccount: (id: string) => Promise<void>;
+  addTransaction: (transaction: Omit<Transaction, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateTransaction: (transaction: Transaction) => Promise<void>;
+  removeTransaction: (id: string) => Promise<void>;
+  addCategory: (category: Omit<Category, 'id'>) => Promise<void>;
+  removeCategory: (id: string) => Promise<void>;
+  addBudget: (budget: Omit<Budget, 'id' | 'createdAt'>) => Promise<void>;
+  updateBudget: (budget: Budget) => Promise<void>;
+  removeBudget: (id: string) => Promise<void>;
+  clearAllData: () => Promise<void>;
 }
 
 const defaultSettings: UserSettings = {
@@ -99,12 +125,24 @@ export const useStore = create<AppState>((set, get) => ({
   currentFilter: 'today',
   searchQuery: '',
   
+  // Finance initial state
+  accounts: [],
+  transactions: [],
+  categories: [],
+  budgets: [],
+  financeSummary: {
+    totalIncome: 0,
+    totalExpenses: 0,
+    totalBalance: 0,
+    expensesByCategory: [],
+  },
+  
   initialize: async () => {
     try {
       console.log('Initializing database...');
       await db.initDatabase();
       console.log('Loading data...');
-      const [tasks, projects, tags, events, timeBlocks, habits, goals, notes, focusSessions, settings] = await Promise.all([
+      const [tasks, projects, tags, events, timeBlocks, habits, goals, notes, focusSessions, settings, accounts, transactions, categories, budgets, financeSummary] = await Promise.all([
         db.getTasks(),
         db.getProjects(),
         db.getTags(),
@@ -115,9 +153,14 @@ export const useStore = create<AppState>((set, get) => ({
         db.getNotes(),
         db.getFocusSessions(),
         db.getSettings(),
+        db.getAccounts(),
+        db.getTransactions(),
+        db.getCategories(),
+        db.getBudgets(),
+        db.getFinanceSummary(),
       ]);
       console.log('Tasks loaded:', tasks.length);
-      set({ tasks, projects, tags, events, timeBlocks, habits, goals, notes, focusSessions, settings, isLoading: false });
+      set({ tasks, projects, tags, events, timeBlocks, habits, goals, notes, focusSessions, settings, isLoading: false, accounts, transactions, categories, budgets, financeSummary });
     } catch (error) {
       console.error('Failed to initialize database:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -446,6 +489,119 @@ export const useStore = create<AppState>((set, get) => ({
       if (!t.dueDate) return false;
       return dayjs(t.dueDate).isBefore(dayjs(), 'day') && t.status !== 'done' && t.status !== 'archived';
     });
+  },
+
+  // Finance functions
+  loadFinanceData: async () => {
+    try {
+      const [accounts, transactions, categories, budgets, financeSummary] = await Promise.all([
+        db.getAccounts(),
+        db.getTransactions(),
+        db.getCategories(),
+        db.getBudgets(),
+        db.getFinanceSummary(),
+      ]);
+      set({ accounts, transactions, categories, budgets, financeSummary });
+    } catch (error) {
+      console.error('Failed to load finance data:', error);
+    }
+  },
+
+  addAccount: async (accountData) => {
+    const now = dayjs().toISOString();
+    const account: Account = {
+      ...accountData,
+      id: uuidv4(),
+      createdAt: now,
+      updatedAt: now,
+    };
+    await db.createAccount(account);
+    set(state => ({ accounts: [...state.accounts, account] }));
+    get().loadFinanceData();
+  },
+
+  updateAccount: async (account) => {
+    const updatedAccount = { ...account, updatedAt: dayjs().toISOString() };
+    await db.updateAccount(updatedAccount);
+    set(state => ({
+      accounts: state.accounts.map(a => a.id === account.id ? updatedAccount : a),
+    }));
+    get().loadFinanceData();
+  },
+
+  removeAccount: async (id) => {
+    await db.deleteAccount(id);
+    set(state => ({ accounts: state.accounts.filter(a => a.id !== id) }));
+    get().loadFinanceData();
+  },
+
+  addTransaction: async (transactionData) => {
+    const now = dayjs().toISOString();
+    const transaction: Transaction = {
+      ...transactionData,
+      id: uuidv4(),
+      createdAt: now,
+      updatedAt: now,
+    };
+    await db.createTransaction(transaction);
+    set(state => ({ transactions: [transaction, ...state.transactions] }));
+    get().loadFinanceData();
+  },
+
+  updateTransaction: async (transaction) => {
+    const updatedTransaction = { ...transaction, updatedAt: dayjs().toISOString() };
+    await db.updateTransaction(updatedTransaction);
+    set(state => ({
+      transactions: state.transactions.map(t => t.id === transaction.id ? updatedTransaction : t),
+    }));
+    get().loadFinanceData();
+  },
+
+  removeTransaction: async (id) => {
+    await db.deleteTransaction(id);
+    set(state => ({ transactions: state.transactions.filter(t => t.id !== id) }));
+    get().loadFinanceData();
+  },
+
+  addCategory: async (categoryData) => {
+    const category: Category = {
+      ...categoryData,
+      id: uuidv4(),
+    };
+    await db.createCategory(category);
+    set(state => ({ categories: [...state.categories, category] }));
+  },
+
+  removeCategory: async (id) => {
+    await db.deleteCategory(id);
+    set(state => ({ categories: state.categories.filter(c => c.id !== id) }));
+  },
+
+  addBudget: async (budgetData) => {
+    const budget: Budget = {
+      ...budgetData,
+      id: uuidv4(),
+      createdAt: dayjs().toISOString(),
+    };
+    await db.createBudget(budget);
+    set(state => ({ budgets: [...state.budgets, budget] }));
+  },
+
+  updateBudget: async (budget) => {
+    await db.updateBudget(budget);
+    set(state => ({
+      budgets: state.budgets.map(b => b.id === budget.id ? budget : b),
+    }));
+  },
+
+  removeBudget: async (id) => {
+    await db.deleteBudget(id);
+    set(state => ({ budgets: state.budgets.filter(b => b.id !== id) }));
+  },
+
+  clearAllData: async () => {
+    await db.clearAllData();
+    await get().initialize();
   },
 }));
 
