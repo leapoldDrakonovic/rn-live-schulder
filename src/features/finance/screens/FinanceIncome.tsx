@@ -5,6 +5,9 @@ import { useColorScheme } from '../../../../hooks/use-color-scheme';
 import { Transaction, TransactionCategory } from '../../../../src/types';
 
 const INCOME_CATEGORIES: TransactionCategory[] = ['salary', 'investment', 'gift', 'other_income'];
+const RSD_TO_USD_RATE = 96;
+
+type Currency = 'USD' | 'RSD';
 
 export function FinanceIncome() {
   const { transactions, accounts, addTransaction, removeTransaction } = useStore();
@@ -83,15 +86,28 @@ function IncomeModal({ visible, onClose, accounts, onSave }: {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const [amount, setAmount] = useState('');
+  const [currency, setCurrency] = useState<Currency>('USD');
   const [category, setCategory] = useState<TransactionCategory>('salary');
   const [accountId, setAccountId] = useState(accounts[0]?.id || '');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
 
+  const getDisplayAmount = () => {
+    if (!amount) return '';
+    const numAmount = parseFloat(amount);
+    if (isNaN(numAmount)) return amount;
+    if (currency === 'RSD') {
+      return (numAmount / RSD_TO_USD_RATE).toFixed(2);
+    }
+    return amount;
+  };
+
   const handleSave = () => {
     if (!amount || !accountId) return;
+    const numAmount = parseFloat(amount);
+    const finalAmount = currency === 'RSD' ? numAmount / RSD_TO_USD_RATE : numAmount;
     onSave({
-      amount: parseFloat(amount),
+      amount: finalAmount,
       type: 'income',
       category,
       description,
@@ -100,6 +116,7 @@ function IncomeModal({ visible, onClose, accounts, onSave }: {
     });
     setAmount('');
     setDescription('');
+    setCurrency('USD');
   };
 
   return (
@@ -109,13 +126,32 @@ function IncomeModal({ visible, onClose, accounts, onSave }: {
           <Text style={[styles.modalTitle, { color: isDark ? '#FFF' : '#000' }]}>Add Income</Text>
 
           <Text style={[styles.inputLabel, { color: isDark ? '#FFF' : '#000' }]}>Amount</Text>
-          <TextInput
-            value={amount}
-            onChangeText={setAmount}
-            placeholder="0.00"
-            keyboardType="numeric"
-            style={[styles.input, { backgroundColor: isDark ? '#2C2C2E' : '#F2F2F7', color: isDark ? '#FFF' : '#000' }]}
-          />
+          <View style={styles.currencyRow}>
+            <View style={styles.currencyToggle}>
+              <TouchableOpacity 
+                style={[styles.currencyButton, currency === 'USD' && styles.currencyButtonActive]} 
+                onPress={() => setCurrency('USD')}
+              >
+                <Text style={[styles.currencyButtonText, currency === 'USD' && styles.currencyButtonTextActive]}>USD</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.currencyButton, currency === 'RSD' && styles.currencyButtonActive]} 
+                onPress={() => setCurrency('RSD')}
+              >
+                <Text style={[styles.currencyButtonText, currency === 'RSD' && styles.currencyButtonTextActive]}>RSD</Text>
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              value={amount}
+              onChangeText={setAmount}
+              placeholder={currency === 'USD' ? "0.00" : "0"}
+              keyboardType="numeric"
+              style={[styles.input, styles.amountInput, { backgroundColor: isDark ? '#2C2C2E' : '#F2F2F7', color: isDark ? '#FFF' : '#000' }]}
+            />
+          </View>
+          {currency === 'RSD' && amount && (
+            <Text style={styles.convertedText}>≈ ${getDisplayAmount()} USD</Text>
+          )}
 
           <Text style={[styles.inputLabel, { color: isDark ? '#FFF' : '#000' }]}>Category</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categorySelector}>
@@ -191,6 +227,14 @@ const styles = StyleSheet.create({
   modalContent: { borderRadius: 16, padding: 20 },
   modalTitle: { fontSize: 20, fontWeight: 'bold', textAlign: 'center', marginBottom: 16 },
   inputLabel: { fontSize: 14, fontWeight: '500', marginBottom: 8, marginTop: 12 },
+  currencyRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  currencyToggle: { flexDirection: 'row', backgroundColor: '#F2F2F7', borderRadius: 8, padding: 2, marginRight: 8 },
+  currencyButton: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6 },
+  currencyButtonActive: { backgroundColor: '#007AFF' },
+  currencyButtonText: { fontSize: 14, fontWeight: '600', color: '#8E8E93' },
+  currencyButtonTextActive: { color: '#FFFFFF' },
+  amountInput: { flex: 1 },
+  convertedText: { fontSize: 13, color: '#34C759', marginTop: -4, marginBottom: 8 },
   input: { fontSize: 16, padding: 12, borderRadius: 8 },
   categorySelector: { flexDirection: 'row', marginBottom: 8 },
   categoryOption: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12, backgroundColor: '#F2F2F7', marginRight: 8 },
