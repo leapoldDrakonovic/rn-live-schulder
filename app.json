@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "scheluder",
+    "name": "WLB",
     "slug": "scheluder",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/icon.jpg",
     "scheme": "scheluder",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -40,7 +40,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/splash-icon.jpg",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",

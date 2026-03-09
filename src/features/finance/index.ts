@@ -1,10 +1,2 @@
 export { FinanceScreen } from './screens/FinanceScreen';
-export { FinanceDashboard } from './screens/FinanceDashboard';
-export { FinanceAccounts } from './screens/FinanceAccounts';
-export { FinanceTransactions } from './screens/FinanceTransactions';
-export { FinanceIncome } from './screens/FinanceIncome';
-export { FinanceExpenses } from './screens/FinanceExpenses';
 export { FinanceCategories } from './screens/FinanceCategories';
-export { FinanceStatistics } from './screens/FinanceStatistics';
-export { FinanceBudgets } from './screens/FinanceBudgets';
-export { SegmentedControl } from './components/SegmentedControl';

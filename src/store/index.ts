@@ -94,6 +94,7 @@ interface AppState {
   addBudget: (budget: Omit<Budget, 'id' | 'createdAt'>) => Promise<void>;
   updateBudget: (budget: Budget) => Promise<void>;
   removeBudget: (id: string) => Promise<void>;
+  clearAllData: () => Promise<void>;
 }
 
 const defaultSettings: UserSettings = {
@@ -596,6 +597,11 @@ export const useStore = create<AppState>((set, get) => ({
   removeBudget: async (id) => {
     await db.deleteBudget(id);
     set(state => ({ budgets: state.budgets.filter(b => b.id !== id) }));
+  },
+
+  clearAllData: async () => {
+    await db.clearAllData();
+    await get().initialize();
   },
 }));
 

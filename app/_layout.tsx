@@ -1,18 +1,16 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { ActivityIndicator, StyleSheet, View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import 'react-native-reanimated';
 
-import { useColorScheme } from '../hooks/use-color-scheme';
 import { useStore } from '../src/store';
 import { FinanceScreen } from '../src/features/finance/screens/FinanceScreen';
 
 const TOP_TABS = ['Planner', 'Finance', 'Settings'];
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme() || 'light';
   const { initialize, isLoading, initError, settings } = useStore();
   const [activeTab, setActiveTab] = useState(0);
   
@@ -38,7 +36,7 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={DefaultTheme}>
       <View style={styles.container}>
         <View style={styles.header}>
           <View style={styles.tabContainer}>
@@ -81,43 +79,54 @@ export default function RootLayout() {
           
           {activeTab === 1 && <FinanceScreen />}
           
-          {activeTab === 2 && (
-            <SettingsContent colorScheme={colorScheme} />
-          )}
+          {activeTab === 2 && <SettingsContent />}
         </View>
       </View>
-      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+      <StatusBar style="dark" />
     </ThemeProvider>
   );
 }
 
-function SettingsContent({ colorScheme }: { colorScheme: string }) {
-  const isDark = colorScheme === 'dark';
+function SettingsContent() {
+  const { clearAllData } = useStore();
+  
+  const handleClearData = () => {
+    Alert.alert(
+      'Clear All Data',
+      'Are you sure you want to delete all data? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Delete', style: 'destructive', onPress: async () => {
+          try {
+            await clearAllData();
+            Alert.alert('Success', 'All data has been cleared');
+          } catch (error) {
+            Alert.alert('Error', 'Failed to clear data');
+          }
+        }},
+      ]
+    );
+  };
   
   return (
-    <ScrollView style={[styles.settingsContainer, { backgroundColor: isDark ? '#000' : '#F2F2F7' }]}>
-      <View style={[styles.settingsSection, { backgroundColor: isDark ? '#1C1C1E' : '#FFF' }]}>
-        <Text style={[styles.settingsTitle, { color: isDark ? '#FFF' : '#000' }]}>Appearance</Text>
+    <ScrollView style={styles.settingsContainer}>
+      <View style={styles.settingsSection}>
+        <Text style={styles.settingsTitle}>Data</Text>
         <View style={styles.settingRow}>
-          <Text style={[styles.settingLabel, { color: isDark ? '#FFF' : '#000' }]}>Theme</Text>
-          <Text style={styles.settingValue}>{colorScheme === 'dark' ? 'Dark' : 'Light'}</Text>
+          <Text style={styles.settingLabel}>Export Data</Text>
         </View>
+        <TouchableOpacity 
+          style={styles.settingRow}
+          onPress={handleClearData}
+        >
+          <Text style={styles.dangerLabel}>Clear All Data</Text>
+        </TouchableOpacity>
       </View>
       
-      <View style={[styles.settingsSection, { backgroundColor: isDark ? '#1C1C1E' : '#FFF' }]}>
-        <Text style={[styles.settingsTitle, { color: isDark ? '#FFF' : '#000' }]}>Data</Text>
+      <View style={styles.settingsSection}>
+        <Text style={styles.settingsTitle}>About</Text>
         <View style={styles.settingRow}>
-          <Text style={[styles.settingLabel, { color: isDark ? '#FFF' : '#000' }]}>Export Data</Text>
-        </View>
-        <View style={styles.settingRow}>
-          <Text style={[styles.settingLabel, { color: '#FF3B30' }]}>Clear All Data</Text>
-        </View>
-      </View>
-      
-      <View style={[styles.settingsSection, { backgroundColor: isDark ? '#1C1C1E' : '#FFF' }]}>
-        <Text style={[styles.settingsTitle, { color: isDark ? '#FFF' : '#000' }]}>About</Text>
-        <View style={styles.settingRow}>
-          <Text style={[styles.settingLabel, { color: isDark ? '#FFF' : '#000' }]}>Version</Text>
+          <Text style={styles.settingLabel}>Version</Text>
           <Text style={styles.settingValue}>1.0.0</Text>
         </View>
       </View>
@@ -128,6 +137,7 @@ function SettingsContent({ colorScheme }: { colorScheme: string }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
   },
   header: {
     paddingTop: 50,
@@ -166,13 +176,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#FFFFFF',
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F2F2F7',
+    backgroundColor: '#FFFFFF',
     padding: 20,
   },
   errorTitle: {
@@ -189,28 +199,37 @@ const styles = StyleSheet.create({
   settingsContainer: {
     flex: 1,
     padding: 16,
+    backgroundColor: '#F2F2F7',
   },
   settingsSection: {
     borderRadius: 12,
     marginBottom: 16,
     overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
   },
   settingsTitle: {
     fontSize: 14,
     fontWeight: '600',
     padding: 16,
     paddingBottom: 8,
+    color: '#8E8E93',
   },
   settingRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
-    borderTopWidth: 1,
+    borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: '#E5E5EA',
+    backgroundColor: '#FFFFFF',
   },
   settingLabel: {
     fontSize: 16,
+    color: '#000000',
+  },
+  dangerLabel: {
+    fontSize: 16,
+    color: '#FF3B30',
   },
   settingValue: {
     fontSize: 16,

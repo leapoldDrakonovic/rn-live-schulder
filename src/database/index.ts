@@ -225,6 +225,11 @@ export const initDatabase = async (): Promise<void> => {
       ('other_income', 'Other', 'income', '#8E8E93', 'ellipsis', 0)
     `);
 
+    await db.execAsync(`
+      INSERT OR IGNORE INTO accounts (id, name, type, balance, color, icon, createdAt, updatedAt) VALUES
+      ('default', 'Cash', 'cash', 0, '#007AFF', 'wallet', datetime('now'), datetime('now'))
+    `);
+
     console.log('Database initialized successfully');
   } catch (error) {
     console.error('Failed to initialize database:', error);
@@ -1161,5 +1166,30 @@ export const getFinanceSummary = async (startDate?: string, endDate?: string) =>
       totalBalance: 0,
       expensesByCategory: [],
     };
+  }
+};
+
+export const clearAllData = async (): Promise<void> => {
+  try {
+    const database = await getDatabase();
+    await database.execAsync('DELETE FROM tasks');
+    await database.execAsync('DELETE FROM projects');
+    await database.execAsync('DELETE FROM tags');
+    await database.execAsync('DELETE FROM events');
+    await database.execAsync('DELETE FROM time_blocks');
+    await database.execAsync('DELETE FROM habits');
+    await database.execAsync('DELETE FROM goals');
+    await database.execAsync('DELETE FROM notes');
+    await database.execAsync('DELETE FROM focus_sessions');
+    await database.execAsync('DELETE FROM transactions');
+    await database.execAsync('DELETE FROM budgets');
+    await database.execAsync('DELETE FROM accounts');
+    await database.execAsync(`
+      INSERT OR IGNORE INTO accounts (id, name, type, balance, color, icon, createdAt, updatedAt) VALUES
+      ('default', 'Cash', 'cash', 0, '#007AFF', 'wallet', datetime('now'), datetime('now'))
+    `);
+  } catch (error) {
+    console.error('Error clearing all data:', error);
+    throw error;
   }
 };
