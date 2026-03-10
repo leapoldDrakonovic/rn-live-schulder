@@ -46,7 +46,7 @@ export default function TabLayout() {
           width: "78%",
 
           borderRadius: 30,  // сильнее скругление
-
+          marginLeft: 5,
           left: 20,          // отступы по бокам
           right: 20,
           bottom: 20,        // подняли выше

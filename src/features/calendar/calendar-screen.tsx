@@ -8,8 +8,8 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, DateData } from 'react-native-calendars';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { TaskCard } from '../../components/ui';
 import { useStore } from '../../store';
 import { CalendarEvent, Task } from '../../types';
@@ -56,6 +56,12 @@ export const CalendarScreen: React.FC = () => {
     t.dueDate && dayjs(t.dueDate).format('YYYY-MM-DD') === selectedDate
   );
   
+  const scheduledTasksForDate = tasks.filter(t => 
+    t.dueDate && 
+    t.startTime && 
+    dayjs(t.dueDate).format('YYYY-MM-DD') === selectedDate
+  );
+  
   const eventsForDate = events.filter(e => 
     dayjs(e.startTime).format('YYYY-MM-DD') === selectedDate
   );
@@ -97,26 +103,78 @@ export const CalendarScreen: React.FC = () => {
   const renderDayView = () => {
     const hours = Array.from({ length: 24 }, (_, i) => i);
     
+    const getItemsForHour = (hour: number) => {
+      const hourEvents = eventsForDate.filter(e => 
+        dayjs(e.startTime).hour() === hour
+      );
+      
+      const hourScheduledTasks = scheduledTasksForDate.filter(t => {
+        if (!t.startTime) return false;
+        const taskHour = dayjs(t.startTime).hour();
+        return taskHour === hour;
+      });
+      
+      return [...hourEvents, ...hourScheduledTasks];
+    };
+    
+    const getItemStyles = (item: CalendarEvent | Task) => {
+      if ('startTime' in item && 'endTime' in item) {
+        const event = item as CalendarEvent;
+        return {
+          backgroundColor: '#FF9500',
+        };
+      }
+      
+      const task = item as Task;
+      if (task.duration) {
+        const height = Math.max((task.duration / 60) * 60, 24);
+        return {
+          backgroundColor: '#007AFF',
+          height,
+        };
+      }
+      return {
+        backgroundColor: '#007AFF',
+      };
+    };
+    
+    const getItemTitle = (item: CalendarEvent | Task) => {
+      if ('startTime' in item && 'endTime' in item) {
+        return (item as CalendarEvent).title;
+      }
+      return (item as Task).title;
+    };
+    
     return (
       <ScrollView style={styles.dayView}>
         {hours.map(hour => {
-          const hourEvents = eventsForDate.filter(e => 
-            dayjs(e.startTime).hour() === hour
-          );
+          const hourItems = getItemsForHour(hour);
           
           return (
             <View key={hour} style={styles.hourSlot}>
               <Text style={styles.hourText}>{hour.toString().padStart(2, '0')}:00</Text>
               <View style={styles.hourContent}>
-                {hourEvents.map(event => (
-                  <TouchableOpacity 
-                    key={event.id} 
-                    style={styles.eventBlock}
-                    onPress={() => {}}
-                  >
-                    <Text style={styles.eventTitle} numberOfLines={1}>{event.title}</Text>
-                  </TouchableOpacity>
-                ))}
+                {hourItems.map(item => {
+                  const isEvent = 'startTime' in item && 'endTime' in item;
+                  return (
+                    <TouchableOpacity 
+                      key={item.id} 
+                      style={[
+                        styles.eventBlock,
+                        getItemStyles(item),
+                        isEvent ? {} : { height: 'auto', minHeight: 24 }
+                      ]}
+                      onPress={() => {}}
+                    >
+                      <Text style={styles.eventTitle} numberOfLines={1}>
+                        {getItemTitle(item)}
+                        {!isEvent && (item as Task).duration && (
+                          <Text style={styles.eventDuration}> ({(item as Task).duration}m)</Text>
+                        )}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </View>
           );
@@ -372,8 +430,14 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 12,
   },
+  eventDuration: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    opacity: 0.8,
+  },
   section: {
     marginBottom: 16,
+    paddingBottom: 100
   },
   sectionTitle: {
     fontSize: 16,

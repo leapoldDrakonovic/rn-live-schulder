@@ -31,6 +31,8 @@ export const initDatabase = async (): Promise<void> => {
         createdAt TEXT NOT NULL,
         updatedAt TEXT NOT NULL,
         dueDate TEXT,
+        startTime TEXT,
+        duration INTEGER,
         priority TEXT DEFAULT 'medium',
         status TEXT DEFAULT 'inbox',
         tags TEXT DEFAULT '[]',
@@ -43,6 +45,9 @@ export const initDatabase = async (): Promise<void> => {
         subtasks TEXT DEFAULT '[]'
       )
     `);
+
+    await db.execAsync(`ALTER TABLE tasks ADD COLUMN startTime TEXT`).catch(() => {});
+    await db.execAsync(`ALTER TABLE tasks ADD COLUMN duration INTEGER`).catch(() => {});
 
     await db.execAsync(`
       CREATE TABLE IF NOT EXISTS projects (
@@ -276,8 +281,8 @@ export const createTask = async (task: Task): Promise<void> => {
   try {
     const database = await getDatabase();
     await database.runAsync(
-      `INSERT INTO tasks (id, title, description, createdAt, updatedAt, dueDate, priority, status, tags, projectId, repeatRule, reminder, estimatedTime, actualTime, energyLevelRequired, subtasks)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO tasks (id, title, description, createdAt, updatedAt, dueDate, startTime, duration, priority, status, tags, projectId, repeatRule, reminder, estimatedTime, actualTime, energyLevelRequired, subtasks)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         task.id,
         task.title,
@@ -285,6 +290,8 @@ export const createTask = async (task: Task): Promise<void> => {
         task.createdAt,
         task.updatedAt,
         task.dueDate,
+        task.startTime,
+        task.duration,
         task.priority,
         task.status,
         JSON.stringify(task.tags),
@@ -307,12 +314,14 @@ export const updateTask = async (task: Task): Promise<void> => {
   try {
     const database = await getDatabase();
     await database.runAsync(
-      `UPDATE tasks SET title = ?, description = ?, updatedAt = ?, dueDate = ?, priority = ?, status = ?, tags = ?, projectId = ?, repeatRule = ?, reminder = ?, estimatedTime = ?, actualTime = ?, energyLevelRequired = ?, subtasks = ? WHERE id = ?`,
+      `UPDATE tasks SET title = ?, description = ?, updatedAt = ?, dueDate = ?, startTime = ?, duration = ?, priority = ?, status = ?, tags = ?, projectId = ?, repeatRule = ?, reminder = ?, estimatedTime = ?, actualTime = ?, energyLevelRequired = ?, subtasks = ? WHERE id = ?`,
       [
         task.title,
         task.description,
         task.updatedAt,
         task.dueDate,
+        task.startTime,
+        task.duration,
         task.priority,
         task.status,
         JSON.stringify(task.tags),

@@ -28,6 +28,8 @@ export interface Task {
   createdAt: string;
   updatedAt: string;
   dueDate: string | null;
+  startTime: string | null;
+  duration: number | null;
   priority: TaskPriority;
   status: TaskStatus;
   tags: string[];

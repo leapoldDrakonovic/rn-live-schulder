@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Input, PrioritySelector, TaskCard } from '../../components/ui';
+import { DateTimePickerField, DurationPicker, Input, PrioritySelector, TaskCard } from '../../components/ui';
 import { useStore } from '../../store';
 import { Task, TaskPriority } from '../../types';
 import { formatDate, getGreeting, parseQuickAdd } from '../../utils';
@@ -28,6 +28,8 @@ export const TodayScreen: React.FC = () => {
   const [newTaskDescription, setNewTaskDescription] = useState('');
   const [newTaskPriority, setNewTaskPriority] = useState<TaskPriority>('medium');
   const [newTaskDueDate, setNewTaskDueDate] = useState<string | null>(dayjs().toISOString());
+  const [newTaskStartTime, setNewTaskStartTime] = useState<string | null>(null);
+  const [newTaskDuration, setNewTaskDuration] = useState<number | null>(null);
   
   const today = dayjs().format('YYYY-MM-DD');
   const todayTasks = tasks.filter(t => 
@@ -46,6 +48,8 @@ export const TodayScreen: React.FC = () => {
       title: parsed.title,
       description: '',
       dueDate: parsed.dueDate || dayjs().toISOString(),
+      startTime: null,
+      duration: null,
       priority: parsed.priority as TaskPriority,
       status: 'inbox',
       tags: [],
@@ -67,6 +71,8 @@ export const TodayScreen: React.FC = () => {
       title: newTaskTitle,
       description: newTaskDescription,
       dueDate: newTaskDueDate,
+      startTime: newTaskStartTime,
+      duration: newTaskDuration,
       priority: newTaskPriority,
       status: 'inbox',
       tags: [],
@@ -83,6 +89,8 @@ export const TodayScreen: React.FC = () => {
     setNewTaskDescription('');
     setNewTaskPriority('medium');
     setNewTaskDueDate(dayjs().toISOString());
+    setNewTaskStartTime(null);
+    setNewTaskDuration(null);
     setShowAddModal(false);
   };
   
@@ -124,7 +132,7 @@ export const TodayScreen: React.FC = () => {
         {todayTasks.length > 0 && (
           <View style={styles.progressSection}>
             <View style={styles.progressHeader}>
-              <Text style={styles.progressTitle}>Today's Progress</Text>
+              <Text style={styles.progressTitle}>Today{"'"}s Progress</Text>
               <Text style={styles.progressCount}>{completedCount}/{totalCount}</Text>
             </View>
             <View style={styles.progressBar}>
@@ -146,7 +154,7 @@ export const TodayScreen: React.FC = () => {
           </View>
         )}
         
-        <View style={styles.section}>
+        <View style={styles.sectionToday}>
           <Text style={styles.sectionTitle}>📋 Today</Text>
           {todayTasks.length === 0 ? (
             <View style={styles.emptyState}>
@@ -219,12 +227,30 @@ export const TodayScreen: React.FC = () => {
                 />
               </View>
               
-              <Input
+              <DateTimePickerField
                 label="Due Date"
-                value={newTaskDueDate ? dayjs(newTaskDueDate).format('YYYY-MM-DD') : ''}
-                onChangeText={(text: string) => setNewTaskDueDate(text ? dayjs(text).toISOString() : null)}
-                placeholder="YYYY-MM-DD"
+                value={newTaskDueDate}
+                onChange={setNewTaskDueDate}
+                mode="date"
+                placeholder="Select date"
               />
+              
+              <DateTimePickerField
+                label="Start Time (optional)"
+                value={newTaskStartTime}
+                onChange={setNewTaskStartTime}
+                mode="time"
+                placeholder="Select start time"
+              />
+              
+              {newTaskStartTime && (
+                <DurationPicker
+                  label="Duration (optional)"
+                  value={newTaskDuration}
+                  onChange={setNewTaskDuration}
+                  placeholder="Select duration"
+                />
+              )}
             </ScrollView>
           </KeyboardAvoidingView>
         </SafeAreaView>
@@ -321,6 +347,10 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 16,
+  },
+  sectionToday: {
+    marginBottom: 16,
+    paddingBottom: 100
   },
   sectionTitle: {
     fontSize: 18,
